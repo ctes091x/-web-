@@ -6,10 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.modules.user import models as user_models
 from app.modules.group import models as group_models
+from app.modules.task import models as task_models
+from app.modules.calendar import models as calendar_models
 
 # 2. ルーター（APIエンドポイントの集合）のインポート
 from app.modules.user.api import router as user_router
 from app.modules.group.api import router as group_router
+from app.modules.task.api import router as task_router
+from app.modules.calendar.api import router as calendar_router
 
 # --- データベースのテーブル作成 ---
 # アプリ起動時に、まだ存在しないテーブルを自動的に作成します。
