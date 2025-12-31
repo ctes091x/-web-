@@ -15,7 +15,7 @@ from app.modules.group.api import router as group_router
 # アプリ起動時に、まだ存在しないテーブルを自動的に作成します。
 # ※ 本番環境ではAlembicなどのマイグレーションツールを使うのが一般的ですが、
 #    開発段階ではこれで十分です。
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 # --- FastAPIアプリの初期化 ---
 app = FastAPI(
