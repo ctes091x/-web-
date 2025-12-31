@@ -1,0 +1,1 @@
+import { useParams } from 'react-router-dom'; export default function GroupInfoPage() { const { groupId } = useParams(); return <div className='p-4'><h1>グループ設定・情報 (ID: {groupId})</h1><p>グループ名変更・脱退・削除</p></div>; }

@@ -1,0 +1,1 @@
+import { useParams } from 'react-router-dom'; export default function GroupCalendarPage() { const { groupId } = useParams(); return <div className='p-4'><h1>グループカレンダー (ID: {groupId})</h1><p>ここにカレンダーと予定追加ボタンを配置</p></div>; }

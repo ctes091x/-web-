@@ -1,0 +1,1 @@
+import { useParams } from 'react-router-dom'; export default function GroupMembersPage() { const { groupId } = useParams(); return <div className='p-4'><h1>メンバー管理 (ID: {groupId})</h1><p>メンバーリスト・権限変更・除名</p></div>; }
