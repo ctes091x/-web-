@@ -13,6 +13,11 @@ from . import crud, schemas, models
 
 router = APIRouter()
 
+@router.get("/me", response_model=schemas.UserResponse)
+def read_users_me(current_user: user_models.User = Depends(get_current_user)):
+    """ログイン中の自分の情報を取得"""
+    return current_user
+
 @router.post("/signup", response_model=schemas.UserResponse)
 def signup(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     """
@@ -27,7 +32,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     # DBに保存
     return crud.create_user(db=db, user=user)
 
-@router.post("/login", response_model=schemas.Token)
+@router.post("/token", response_model=schemas.Token)
 def login_for_access_token(
     # OAuth2標準フォーム (username, passwordフィールドを持つ) を使用
     # フロントエンドからは username フィールドに「メールアドレス」を入れて送信してもらう
