@@ -24,7 +24,7 @@ def upgrade() -> None:
     op.create_table('groups',
     sa.Column('group_id', sa.String(length=36), nullable=False),
     sa.Column('group_name', sa.String(length=100), nullable=False, comment='グループ名'),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('group_id')
     )
@@ -35,7 +35,7 @@ def upgrade() -> None:
     sa.Column('user_name', sa.String(length=255), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('is_superuser', sa.Boolean(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
@@ -51,7 +51,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('location', sa.String(length=255), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['group_id'], ['groups.group_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('template_id')
     )
@@ -68,7 +68,7 @@ def upgrade() -> None:
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('is_task', sa.Boolean(), nullable=False),
     sa.Column('status', sa.String(length=255), nullable=True, comment='未着手、進行中、完了、None=タスクではない'),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['group_id'], ['groups.group_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('task_id')
@@ -81,7 +81,7 @@ def upgrade() -> None:
     sa.Column('group_id', sa.String(length=36), nullable=False),
     sa.Column('is_representative', sa.Boolean(), nullable=True, comment='代表者フラグ (True=代表/管理者)'),
     sa.Column('accepted', sa.Boolean(), nullable=True, comment='参加承認状態 (True=参加済み, False=承認待ち)'),
-    sa.Column('joined_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('joined_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['group_id'], ['groups.group_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_group_id'),
@@ -94,7 +94,7 @@ def upgrade() -> None:
     sa.Column('is_assigned', sa.Boolean(), nullable=True, comment='True: 担当者, False: 担当者でない'),
     sa.Column('reaction', sa.String(length=20), nullable=True, comment='join: 参加, absent: 不参加, undecided: 未定, no-reaction: 無反応'),
     sa.Column('comment', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['task_id'], ['tasks.task_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
