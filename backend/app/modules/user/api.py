@@ -113,23 +113,6 @@ def delete_my_account(
     # 204 No Content は「成功したけど返すデータはない」という意味
     return
 
-@router.get("/me", response_model=schemas.UserResponse)
-def read_users_me(current_user: user_models.User = Depends(get_current_user)):
-    """ログイン中の自分の情報を取得"""
-    return current_user
-
-# --- ★以下を追加: 所属グループ一覧取得API ---
-@router.get("/me/groups", response_model=List[schemas.UserGroupDetail])
-def read_my_groups(
-    current_user: user_models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    ログイン中のユーザーが所属している（または招待されている）グループ一覧を取得します。
-    """
-    return crud.get_user_joined_groups(db, user_id=current_user.user_id)
-
-# 2. 凍結用APIの追加: Superuserのみ実行可能
 @router.put("/{user_id}/status", response_model=schemas.UserResponse)
 def change_user_status(
     user_id: str,
@@ -161,3 +144,19 @@ def change_user_status(
         raise HTTPException(status_code=404, detail="User not found")
         
     return updated_user
+
+@router.get("/me", response_model=schemas.UserResponse)
+def read_users_me(current_user: user_models.User = Depends(get_current_user)):
+    """ログイン中の自分の情報を取得"""
+    return current_user
+
+# --- ★以下を追加: 所属グループ一覧取得API ---
+@router.get("/me/groups", response_model=List[schemas.UserGroupDetail])
+def read_my_groups(
+    current_user: user_models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    ログイン中のユーザーが所属している（または招待されている）グループ一覧を取得します。
+    """
+    return crud.get_user_joined_groups(db, user_id=current_user.user_id)
