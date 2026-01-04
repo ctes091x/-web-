@@ -63,4 +63,4 @@ def decode_access_token(token: str) -> dict | None:
         return payload
             
     except JWTError:
-        raise None
+        return None
