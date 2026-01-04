@@ -26,7 +26,7 @@ def check_and_notify_tasks():
         for days_left, target_date in target_dates.items():
             # タスクを取得する際、親のGroup情報も一緒に取得 (joinedload) すると効率的
             tasks = db.query(Task)\
-                .options(joinedload(Task.group_id))\
+                .options(joinedload(Task.group))\
                 .filter(Task.date == target_date)\
                 .all()
             
@@ -40,7 +40,8 @@ def check_and_notify_tasks():
                         task_date=str(task.date),
                         start_time=str(task.start_time) if task.start_time else None,
                         end_time=str(task.end_time) if task.end_time else None,
-                        days_left=days_left
+                        days_left=days_left,
+                        is_task=task.is_task
                     )
                 
     finally:
