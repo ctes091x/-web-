@@ -12,9 +12,9 @@ frontend/
     │
     ├── components/           # 共通コンポーネント
     │   ├── layout/
-    │   │   ├── Header.jsx       # 共通ヘッダー
-    │   │   ├── MainLayout.jsx   # メインレイアウト
-    │   │   └── GroupLayout.jsx  # グループレイアウト
+    │   │   ├── Header.jsx        # 共通ヘッダー
+    │   │   ├── MainLayout.jsx    # メインレイアウト
+    │   │   └── GroupLayout.jsx   # グループレイアウト
     │   │
     │   └── PrivateRoute.jsx  # 認証ガードコンポーネント
     │
@@ -38,9 +38,10 @@ frontend/
     │   │
     │   ├── group/            # グループ関連ページ
     │   │   ├── CreateEventModal.jsx
+    │   │   ├── new/              # グループ作成ページ (追加)
+    │   │   ├── join/             # グループ参加ページ (追加)
     │   │   └── [groupId]/    # 個別グループページ
     │   │       ├── info/
-    │   │       ├── join_requests/
     │   │       └── members/
     │   │
     │   ├── instagram/        # Instagram生成ページ

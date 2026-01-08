@@ -8,7 +8,6 @@ export const GroupLayout = () => {
   const menuItems = [
     { label: '予定表', path: `/group/${groupId}` },
     { label: 'メンバー一覧', path: `/group/${groupId}/members` },
-    { label: '参加リクエスト管理', path: `/group/${groupId}/join_requests` },
     { label: 'グループ情報', path: `/group/${groupId}/info` },
   ];
 

@@ -1,1 +1,0 @@
-import { useParams } from 'react-router-dom'; export default function GroupRequestsPage() { const { groupId } = useParams(); return <div className='p-4'><h1>参加申請リスト (ID: {groupId})</h1><p>承認・拒否のアクション</p></div>; }

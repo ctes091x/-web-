@@ -32,7 +32,10 @@ import AdminMembers from '../pages/admin/members';
 import GroupCalendarPage from '../pages/group/[groupId]';
 import GroupMembersPage from '../pages/group/[groupId]/members';
 import GroupInfoPage from '../pages/group/[groupId]/info';
-import GroupRequestsPage from '../pages/group/[groupId]/join_requests';
+
+// ▼▼▼ 追加: 新規作成・参加ページをインポート ▼▼▼
+import GroupCreatePage from '../pages/group/new';
+import GroupJoinPage from '../pages/group/join';
 
 export const AppRouter = () => {
   return (
@@ -45,7 +48,6 @@ export const AppRouter = () => {
       <Route path="/" element={<Navigate to="/signin" replace />} />
 
       {/* ▼▼▼ 追加 2: ここから下を PrivateRoute で囲む ▼▼▼ */}
-      {/* これにより、内部にあるすべてのページでログインチェックが自動で行われます */}
       <Route element={<PrivateRoute />}>
 
         {/* ▼ メインレイアウト適用エリア (ヘッダーのみ) */}
@@ -65,6 +67,12 @@ export const AppRouter = () => {
           {/* --- 管理者ルート (/admin) --- */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/members" element={<AdminMembers />} />
+
+          {/* ▼▼▼ 追加: グループ作成・参加ルート (/groups) ▼▼▼ */}
+          {/* 既存の /group/:groupId と区別するため、複数形の /groups としています */}
+          <Route path="/groups/new" element={<GroupCreatePage />} />
+          <Route path="/groups/join" element={<GroupJoinPage />} />
+
         </Route>
 
         {/* ▼ グループレイアウト適用エリア (ヘッダー + サイドバー) */}
@@ -73,13 +81,12 @@ export const AppRouter = () => {
           <Route path="/group/:groupId" element={<GroupCalendarPage />} />
           <Route path="/group/:groupId/members" element={<GroupMembersPage />} />
           <Route path="/group/:groupId/info" element={<GroupInfoPage />} />
-          <Route path="/group/:groupId/join_requests" element={<GroupRequestsPage />} />
         </Route>
 
       </Route>
-      {/* ▲▲▲ 追加 2: PrivateRoute 終了タグ ▲▲▲ */}
+      {/* ▲▲▲ PrivateRoute 終了タグ ▲▲▲ */}
 
-      {/* 404 Not Found (マッチしない場合) */}
+      {/* 404 Not Found */}
       <Route path="*" element={<div className="p-4">404: ページが見つかりません</div>} />
     </Routes>
   );

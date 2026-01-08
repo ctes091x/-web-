@@ -1,39 +1,76 @@
-import React, { useState } from 'react';
+// frontend/src/pages/calendar/index.jsx
+import React, { useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import api from '../../lib/api'; // src/lib/api.js
 
-// import './Calendar.css'; 
 import EventModal from './EventModal';
 
 const CalendarPage = () => {
+  const [events, setEvents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  
+  const calendarRef = useRef(null);
 
-  const handleEventClick = (info) => {
-    setSelectedEvent(info.event);
-    setIsModalOpen(true);
+  // カレンダーの表示月が変わるたびにバックエンドからデータを取得
+  const handleDatesSet = async (dateInfo) => {
+    // 表示中の中心となる日付から「年」「月」を計算
+    const centerDate = dateInfo.view.currentStart;
+    const year = centerDate.getFullYear();
+    const month = centerDate.getMonth() + 1;
+
+    try {
+      // 既存API: /my-tasks (自分専用、グループ横断)
+      const response = await api.get('/my-tasks', {
+        params: { year, month }
+      });
+
+      // APIレスポンス (GlobalCalendarTaskResponse) を FullCalendar 用に変換
+      const mappedEvents = response.data.map(task => ({
+        id: task.task_id,
+        title: task.title,
+        start: task.time_span_begin || task.date, 
+        end: task.time_span_end,
+        color: '#6366f1', // 個人の予定カラー
+        extendedProps: {
+          groupName: task.group_name, // APIから返ってくるグループ名
+          location: task.location,
+          description: task.description || '詳細なし',
+        }
+      }));
+      
+      setEvents(mappedEvents);
+    } catch (error) {
+      console.error("Failed to fetch my tasks:", error);
+    }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedEvent(null);
+  const handleEventClick = (info) => {
+    const eventObj = {
+      id: info.event.id,
+      title: info.event.title,
+      start: info.event.start,
+      end: info.event.end,
+      backgroundColor: info.event.backgroundColor,
+      extendedProps: info.event.extendedProps
+    };
+    setSelectedEvent(eventObj);
+    setIsModalOpen(true);
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative">
-      
-      <div className="mb-4 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">マイカレンダー</h2>
-          <p className="text-sm text-slate-500">個人の予定とタスクを管理します</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-slate-800">マイカレンダー</h2>
+        <p className="text-sm text-slate-500">参加中の全グループのタスクが表示されます（閲覧専用）</p>
       </div>
 
-      {/* ▼▼▼ 修正: 高さを750pxに固定して広さを確保 ▼▼▼ */}
       <div className="h-[750px]">
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           headerToolbar={{
@@ -43,68 +80,26 @@ const CalendarPage = () => {
           }}
           locale="ja"
           firstDay={1}
+          height="100%"
           
-          // ▼▼▼ 修正: contentHeight="auto" を削除し、親要素の高さいっぱいに広げる ▼▼▼
-          height="100%" 
-          fixedWeekCount={false} // 余分な行を消す設定は便利なので残しますが、好みで消してもOKです
-
-          events={[
-            { 
-              title: 'プロジェクト会議', 
-              start: new Date().toISOString().split('T')[0],
-              color: '#6366f1',
-              extendedProps: {
-                groupName: '開発部',
-                location: '部室A',
-                description: '新規アプリ開発の進捗報告と、次週のタスク割り当てについて話し合います。'
-              }
-            },
-            { 
-              title: 'デザインレビュー', 
-              start: '2026-01-15T14:00:00',
-              end: '2026-01-15T16:00:00',
-              color: '#ec4899',
-              extendedProps: {
-                groupName: 'デザインチーム',
-                location: 'オンライン (Zoom)',
-                description: 'UIデザインの初稿レビュー。Figmaのリンクを事前に確認しておいてください。'
-              }
-            },
-            { 
-              title: '冬合宿', 
-              start: '2026-01-20', 
-              end: '2026-01-23', 
-              color: '#10b981',
-              extendedProps: {
-                groupName: 'MMA 全体',
-                location: '山梨県 セミナーハウス',
-                description: '2泊3日の開発合宿です。PCと延長コードを忘れずに。\n参加費: 15,000円'
-              }
-            },
-            {
-              title: 'レポート提出',
-              start: '2026-01-28T13:00:00',
-              color: '#f59e0b',
-              extendedProps: {
-                groupName: '個人タスク',
-                location: 'LMS',
-                description: '情報通信工学実験の最終レポート締め切り。'
-              }
-            }
-          ]}
+          events={events}
+          datesSet={handleDatesSet} // 表示期間変更時にデータ取得
           eventClick={handleEventClick}
-          editable={true}
-          selectable={true}
+          
+          // ▼ 要件: 個人画面では移動・追加不可
+          editable={false}
+          selectable={false}
           dayMaxEvents={true}
         />
       </div>
 
       <EventModal 
         isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        event={selectedEvent} 
+        onClose={() => setIsModalOpen(false)} 
+        event={selectedEvent}
+        // 個人カレンダーからはリアクション操作をさせない（グループ画面へ誘導）
+        readOnly={true}
       />
-
     </div>
   );
 };
