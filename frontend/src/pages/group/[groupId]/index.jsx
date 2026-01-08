@@ -19,61 +19,50 @@ const GroupCalendarPage = () => {
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedDateStr, setSelectedDateStr] = useState('');
+  
+  // 新規作成用初期値
+  const [initialDateStr, setInitialDateStr] = useState('');
+  const [initialStartTimeStr, setInitialStartTimeStr] = useState('');
+  
+  // 編集用データ (これがセットされていると編集モードになる)
+  const [editTargetData, setEditTargetData] = useState(null);
 
-  // 1. 権限チェックとユーザー情報取得
+  // 1. 権限チェック
   useEffect(() => {
     const fetchUserStatus = async () => {
       try {
         const [meRes, membersRes] = await Promise.all([
-          // 修正: バックエンドの現状に合わせて /users を削除
           api.get('/me'),
-          api.get(`/groups/${groupId}/members`) // 管理者チェックにはこれが一番確実
+          api.get(`/groups/${groupId}/members`)
         ]);
 
         const myUser = meRes.data;
         setCurrentUser(myUser);
 
-        // メンバー一覧から自分を探す
         const myMembership = membersRes.data.find(m => {
-          // Aパターン: フラット構造
           if (m.user_id === myUser.user_id) return true;
-          // Bパターン: ネスト構造
           if (m.user && m.user.user_id === myUser.user_id) return true;
           return false;
         });
 
-        // デバッグ用ログ
-        console.log("Myself:", myUser);
-        console.log("My Membership in Group:", myMembership);
-
-        // is_representative が true なら管理者
-        if (myMembership && myMembership.is_representative === true) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        setIsAdmin(myMembership && myMembership.is_representative === true);
       } catch (error) {
         console.error("Auth check failed:", error);
       }
     };
-    
-    if (groupId) { // groupIdがある時のみ実行
-      fetchUserStatus();
-    }
+    if (groupId) fetchUserStatus();
   }, [groupId]);
 
-  // 2. タスク取得 (API連携)
+  // 2. タスク取得
   const fetchTasks = useCallback(async () => {
     try {
-      // 既存API: グループタスク一覧
       const response = await api.get(`/groups/${groupId}/tasks`);
-      
       const mappedEvents = response.data.map(task => ({
         id: task.task_id,
         title: task.title,
-        start: task.time_span_begin || task.date,
+        start: task.time_span_begin || task.date, 
         end: task.time_span_end,
         color: '#6366f1',
         extendedProps: {
@@ -81,7 +70,6 @@ const GroupCalendarPage = () => {
           location: task.location,
           description: task.description,
           task_id: task.task_id,
-          // リアクション情報 (TaskUserRelation) を含める
           task_user_relations: task.task_user_relations || []
         }
       }));
@@ -97,14 +85,16 @@ const GroupCalendarPage = () => {
 
   // --- イベントハンドラ ---
 
-  // 日付クリック (管理者のみ新規作成)
+  // カレンダーの日付クリック
   const handleDateSelect = (selectInfo) => {
     if (!isAdmin) return;
-    setSelectedDateStr(selectInfo.startStr);
+    setEditTargetData(null); // 編集データをクリア
+    setInitialDateStr(selectInfo.startStr);
+    setInitialStartTimeStr('09:00');
     setIsCreateModalOpen(true);
   };
 
-  // イベントクリック
+  // イベントクリック (詳細表示)
   const handleEventClick = (info) => {
     const eventObj = {
       id: info.event.id,
@@ -118,7 +108,43 @@ const GroupCalendarPage = () => {
     setIsDetailModalOpen(true);
   };
 
-  // ドラッグ＆ドロップ (管理者のみ)
+  // 詳細モーダル内の「編集」ボタンクリック
+  const handleEditClick = () => {
+    if (!selectedEvent) return;
+    
+    // イベントオブジェクトから編集用データ形式へ変換
+    const { start, end, extendedProps, title } = selectedEvent;
+    
+    // 日付 (YYYY-MM-DD)
+    const dateStr = start.toISOString().split('T')[0];
+    
+    // 時間 (HH:mm) - start
+    const startH = String(start.getHours()).padStart(2, '0');
+    const startM = String(start.getMinutes()).padStart(2, '0');
+    
+    // 時間 (HH:mm) - end
+    let endStr = '';
+    if (end) {
+      const endH = String(end.getHours()).padStart(2, '0');
+      const endM = String(end.getMinutes()).padStart(2, '0');
+      endStr = `${endH}:${endM}`;
+    }
+
+    setEditTargetData({
+      id: selectedEvent.id, // 更新時に使うID
+      title: title,
+      date: dateStr,
+      startTime: `${startH}:${startM}`,
+      endTime: endStr,
+      location: extendedProps.location,
+      description: extendedProps.description,
+    });
+
+    setIsDetailModalOpen(false); // 詳細を閉じる
+    setIsCreateModalOpen(true);  // 編集(作成)モーダルを開く
+  };
+
+  // ドラッグ＆ドロップ更新
   const handleEventDrop = async (info) => {
     if (!isAdmin) {
       info.revert();
@@ -128,14 +154,11 @@ const GroupCalendarPage = () => {
       info.revert();
       return;
     }
-
     try {
-      // 日付/時間の更新
       const newDate = info.event.start.toISOString().split('T')[0];
       const newStart = info.event.start ? info.event.start.toISOString() : null;
       const newEnd = info.event.end ? info.event.end.toISOString() : null;
 
-      // 既存API: PUT /groups/{id}/tasks/{taskId}
       await api.put(`/groups/${groupId}/tasks/${info.event.id}`, {
         date: newDate,
         time_span_begin: newStart,
@@ -148,36 +171,68 @@ const GroupCalendarPage = () => {
     }
   };
 
-  // 新規作成実行
-  const handleCreateSubmit = async (formData) => {
+  // 新規作成ボタン
+  const handleOpenCreateModal = () => {
+    setEditTargetData(null); // 編集データをクリア
+    const now = new Date();
+    const nextHour = new Date(now);
+    nextHour.setHours(now.getHours() + 1);
+    nextHour.setMinutes(0, 0, 0);
+
+    const dateStr = nextHour.getFullYear() + '-' + 
+      String(nextHour.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(nextHour.getDate()).padStart(2, '0');
+    
+    const timeStr = String(nextHour.getHours()).padStart(2, '0') + ':' + 
+      String(nextHour.getMinutes()).padStart(2, '0');
+
+    setInitialDateStr(dateStr);
+    setInitialStartTimeStr(timeStr);
+    setIsCreateModalOpen(true);
+  };
+
+  // フォーム送信 (新規作成 or 更新)
+  const handleFormSubmit = async (formData) => {
     try {
-      // 既存API: POST /groups/{id}/tasks/
-      await api.post(`/groups/${groupId}/tasks/`, {
+      const datePart = formData.start.split('T')[0];
+      const startTimeISO = formData.start ? `${formData.start}:00` : null;
+      const endTimeISO = formData.end ? `${formData.end}:00` : null;
+
+      const payload = {
         title: formData.title,
-        date: selectedDateStr,
-        time_span_begin: formData.startTime ? `${selectedDateStr}T${formData.startTime}:00` : null,
-        time_span_end: formData.endTime ? `${selectedDateStr}T${formData.endTime}:00` : null,
+        date: datePart,
+        time_span_begin: startTimeISO,
+        time_span_end: endTimeISO,
         location: formData.location,
         description: formData.description,
         is_task: true,
         status: "未着手"
-      });
+      };
+
+      if (editTargetData) {
+        // 更新モード (PUT)
+        await api.put(`/groups/${groupId}/tasks/${editTargetData.id}`, payload);
+      } else {
+        // 新規作成モード (POST)
+        await api.post(`/groups/${groupId}/tasks/`, payload);
+      }
+
       setIsCreateModalOpen(false);
+      setEditTargetData(null); // クリア
       fetchTasks();
     } catch (error) {
-      alert("作成に失敗しました");
+      console.error("Task operation failed:", error);
+      alert("処理に失敗しました");
     }
   };
 
-  // リアクション更新
   const handleReactionUpdate = async (taskId, reactionType) => {
     try {
-      // 既存API: PUT .../reaction
       await api.put(`/groups/${groupId}/tasks/${taskId}/reaction`, {
         reaction: reactionType,
         comment: "" 
       });
-      fetchTasks(); // 最新情報を再取得
+      fetchTasks();
       setIsDetailModalOpen(false);
     } catch (error) {
       alert("更新できませんでした");
@@ -195,11 +250,8 @@ const GroupCalendarPage = () => {
         </div>
         {isAdmin && (
           <button
-            onClick={() => {
-              setSelectedDateStr(new Date().toISOString().split('T')[0]);
-              setIsCreateModalOpen(true);
-            }}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700"
+            onClick={handleOpenCreateModal}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors"
           >
             ＋ 新規作成
           </button>
@@ -217,16 +269,14 @@ const GroupCalendarPage = () => {
             height="100%"
             events={events}
             
-            // 操作系
             eventClick={handleEventClick}
-            eventDrop={handleEventDrop}   // 移動
-            eventResize={handleEventDrop} // 期間変更
+            eventDrop={handleEventDrop}
+            eventResize={handleEventDrop}
             
-            // 作成系
             selectable={isAdmin}
             dateClick={handleDateSelect}
             
-            editable={isAdmin} // 管理者のみ編集可能
+            editable={isAdmin}
           />
         </div>
       </div>
@@ -236,15 +286,26 @@ const GroupCalendarPage = () => {
         onClose={() => setIsDetailModalOpen(false)} 
         event={selectedEvent}
         currentUser={currentUser}
+        isAdmin={isAdmin} // 管理者権限を渡す
+        onEdit={handleEditClick} // 編集ハンドラを渡す
         onReactionUpdate={handleReactionUpdate}
-        readOnly={false} // グループ画面ではリアクション可能
+        readOnly={false}
       />
 
       <CreateEventModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateSubmit}
-        initialDate={selectedDateStr}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditTargetData(null); // 閉じる時に編集データをクリア
+        }}
+        onSubmit={handleFormSubmit}
+        
+        initialDate={initialDateStr}
+        initialStartTime={initialStartTimeStr}
+        initialData={editTargetData} // 編集データを渡す
+
+        // keyを変えて再マウント（フォームリセット）
+        key={isCreateModalOpen ? (editTargetData ? `edit-${editTargetData.id}` : 'create') : 'closed'}
       />
     </div>
   );
