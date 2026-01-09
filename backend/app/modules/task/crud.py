@@ -95,7 +95,7 @@ def get_task(db: Session, task_id: str, group_id: str):
 def update_task(db: Session, db_task: models.Task, task_update: schemas.TaskUpdate):
     update_data = task_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field in ["title", "date", "status", "is_task"] and value is None:
+        if field in ["title", "date", "status", "is_task"] and (value is None or value is ""):
             continue
         setattr(db_task, field, value)
     db.add(db_task)
