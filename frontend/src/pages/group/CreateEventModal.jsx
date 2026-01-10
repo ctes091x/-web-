@@ -18,9 +18,11 @@ const CreateEventModal = ({
   isOpen, 
   onClose, 
   onSubmit, 
+  onDelete, 
   initialDate, 
   initialStartTime,
-  initialData = null // 編集用の初期データ
+  initialData = null,
+  isAdmin = false // ★ Added: 管理者権限フラグを追加
 }) => {
   const isEditMode = !!initialData; // データがあれば編集モード
 
@@ -29,22 +31,37 @@ const CreateEventModal = ({
     date: '',
     startTime: '',
     endTime: '',
+    isAllDay: false, // ★ Added: 終日フラグ
     location: '',
     description: '',
     color: '#6366f1',
     colorLabel: ''
   });
 
+  // 開始時間から+1時間を計算するヘルパー
+  const calculateEndTime = (startStr) => {
+    if (!startStr) return '';
+    const [h, m] = startStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m);
+    date.setHours(date.getHours() + 1);
+    return date.toTimeString().slice(0, 5);
+  };
+
   // モーダルが開いたときの初期値セット
   useEffect(() => {
     if (isOpen) {
       if (isEditMode) {
         // 編集モード: 既存データをセット
+        // 時間が設定されていない場合は「終日」とみなす
+        const hasTime = !!initialData.startTime;
+        
         setFormData({
           title: initialData.title || '',
           date: initialData.date || '',
           startTime: initialData.startTime || '09:00',
           endTime: initialData.endTime || calculateEndTime(initialData.startTime || '09:00'),
+          isAllDay: !hasTime, // ★ 時間がないなら終日
           location: initialData.location || '',
           description: initialData.description || '',
           color: initialData.color || '#6366f1',
@@ -58,6 +75,7 @@ const CreateEventModal = ({
           date: initialDate || '',
           startTime: initialStartTime || '09:00',
           endTime: calculateEndTime(initialStartTime || '09:00'),
+          isAllDay: false, // ★ デフォルトは時間指定あり
           location: '',
           description: '',
           color: '#6366f1',
@@ -67,23 +85,16 @@ const CreateEventModal = ({
     }
   }, [isOpen, initialDate, initialStartTime, initialData, isEditMode]);
 
-  // 開始時間から+1時間を計算するヘルパー
-  const calculateEndTime = (startStr) => {
-    if (!startStr) return '';
-    const [h, m] = startStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(h, m);
-    date.setHours(date.getHours() + 1);
-    return date.toTimeString().slice(0, 5);
-  };
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    // Checkboxの場合はcheckedを使用
+    const val = type === 'checkbox' ? checked : value;
     
     setFormData(prev => {
-      const newData = { ...prev, [name]: value };
-      if (name === 'startTime' && !isEditMode) { 
-        // 新規作成時のみ、開始時間変更で終了時間を連動させる(編集時は勝手に変わると不便なため)
+      const newData = { ...prev, [name]: val };
+      
+      // 開始時間が変わったら終了時間も連動 (終日モードでなく、編集中でもない場合)
+      if (name === 'startTime' && !isEditMode && !newData.isAllDay) { 
         newData.endTime = calculateEndTime(value);
       }
       return newData;
@@ -93,13 +104,18 @@ const CreateEventModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // endTimeが空文字の場合は無理にTをつけて結合せず、nullを渡す
-    const startStr = formData.startTime ? `${formData.date}T${formData.startTime}` : null;
-    const endStr = formData.endTime ? `${formData.date}T${formData.endTime}` : null;
+    // 終日の場合は時間をnullにする
+    // バックエンドは time_span_begin/end が null の場合、日付のみのタスクとして扱う想定
+    let startStr = null;
+    let endStr = null;
+
+    if (!formData.isAllDay) {
+        startStr = formData.startTime ? `${formData.date}T${formData.startTime}` : null;
+        endStr = formData.endTime ? `${formData.date}T${formData.endTime}` : null;
+    }
 
     const submitPayload = {
       title: formData.title,
-      // ▼▼▼ 修正: 親コンポーネントが日付を必要とするため date を追加 ▼▼▼
       date: formData.date,
       start: startStr,
       end: endStr,
@@ -108,6 +124,15 @@ const CreateEventModal = ({
     };
 
     onSubmit(submitPayload);
+  };
+
+  // 削除ハンドラ
+  const handleDelete = () => {
+    if (window.confirm('本当にこのタスクを削除しますか？')) {
+      if (onDelete) {
+        onDelete(initialData);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -159,9 +184,10 @@ const CreateEventModal = ({
             </div>
           </div>
 
-          {/* 日時入力 */}
-          <div className="grid grid-cols-12 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
-            <div className="col-span-12 sm:col-span-6">
+          {/* 日時入力エリア */}
+          <div className="grid grid-cols-12 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100 items-center">
+            {/* 日付: 5カラム */}
+            <div className="col-span-12 sm:col-span-5">
               <label className="block text-xs font-bold text-slate-500 mb-1">日付</label>
               <input
                 type="date"
@@ -172,28 +198,48 @@ const CreateEventModal = ({
                 onChange={handleChange}
               />
             </div>
-            <div className="col-span-6 sm:col-span-3">
-              <label className="block text-xs font-bold text-slate-500 mb-1">開始</label>
-              <input
-                type="time"
-                name="startTime"
-                required
-                step="300"
-                className="w-full rounded-md border-slate-300 text-sm"
-                value={formData.startTime}
-                onChange={handleChange}
-              />
+
+            {/* 終日チェックボックス: 2カラム */}
+            <div className="col-span-12 sm:col-span-2 flex justify-start sm:justify-center pt-6 sm:pt-4">
+               <label className="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
+                  <input 
+                      type="checkbox" 
+                      name="isAllDay"
+                      checked={formData.isAllDay}
+                      onChange={handleChange}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  終日
+               </label>
             </div>
-            <div className="col-span-6 sm:col-span-3">
-              <label className="block text-xs font-bold text-slate-500 mb-1">終了</label>
-              <input
-                type="time"
-                name="endTime"
-                step="300"
-                className="w-full rounded-md border-slate-300 text-sm"
-                value={formData.endTime}
-                onChange={handleChange}
-              />
+
+            {/* 時間入力: 5カラム (終日の場合は薄くして操作不可に) */}
+            <div className={`col-span-12 sm:col-span-5 grid grid-cols-2 gap-2 transition-opacity duration-200 ${formData.isAllDay ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">開始</label>
+                <input
+                    type="time"
+                    name="startTime"
+                    required={!formData.isAllDay} // 終日でなければ必須
+                    step="300"
+                    className="w-full rounded-md border-slate-300 text-sm"
+                    value={formData.startTime}
+                    onChange={handleChange}
+                    disabled={formData.isAllDay}
+                />
+                </div>
+                <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">終了</label>
+                <input
+                    type="time"
+                    name="endTime"
+                    step="300"
+                    className="w-full rounded-md border-slate-300 text-sm"
+                    value={formData.endTime}
+                    onChange={handleChange}
+                    disabled={formData.isAllDay}
+                />
+                </div>
             </div>
           </div>
 
@@ -227,20 +273,36 @@ const CreateEventModal = ({
           </div>
         </form>
 
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-6 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
-          >
-            <span>{isEditMode ? '更新する' : '作成する'}</span>
-          </button>
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
+          {/* 左側: 削除ボタン (編集モードかつonDeleteがあり、かつ管理者の場合のみ) */}
+          <div>
+            {isEditMode && onDelete && isAdmin && ( // ★ Changed: isAdmin判定を追加
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="text-red-500 hover:text-red-700 text-sm font-bold px-2 py-2 transition-colors flex items-center gap-1"
+                >
+                    <span className="text-lg">🗑</span> 削除
+                </button>
+            )}
+          </div>
+
+          {/* 右側: アクションボタン */}
+          <div className="flex gap-3">
+            <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+                キャンセル
+            </button>
+            <button
+                onClick={handleSubmit}
+                className="px-6 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+            >
+                <span>{isEditMode ? '更新する' : '作成する'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

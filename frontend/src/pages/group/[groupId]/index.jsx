@@ -258,14 +258,30 @@ const GroupCalendarPage = () => {
     const timeStr = String(nextHour.getHours()).padStart(2, '0') + ':' + 
       String(nextHour.getMinutes()).padStart(2, '0');
 
-    // format を使った書き方も残しておきます。
-    // 現在は正常に動作しますが、もし日付更新などで不具合が起こったら切り替えてみてください。
-    // const dateStr = format(nextHour, 'yyyy-MM-dd');
-    // const timeStr = format(nextHour, 'HH:mm');
-
     setInitialDateStr(dateStr);
     setInitialStartTimeStr(timeStr);
     setIsCreateModalOpen(true);
+  };
+
+  // ★ Added: 削除ハンドラの実装
+  const handleDeleteTask = async (taskData) => {
+    // IDがない場合は何もしない
+    if (!taskData || !taskData.id) return;
+    
+    try {
+      await api.delete(`/groups/${groupId}/tasks/${taskData.id}`);
+      
+      // 成功時の処理
+      setIsCreateModalOpen(false); // 編集モーダルを閉じる
+      setIsDetailModalOpen(false); // ★ 追加: 詳細モーダルも閉じる
+      setEditTargetData(null);
+      setSelectedEvent(null);
+      fetchTasks();
+      
+    } catch (error) {
+      console.error("Delete task failed:", error);
+      alert("削除に失敗しました");
+    }
   };
 
   // フォーム送信 (新規作成 or 更新)
@@ -315,9 +331,6 @@ const GroupCalendarPage = () => {
         await api.put(`/groups/${groupId}/tasks/${editTargetData.id}`, payload);
       } else {
         // 新規作成 (POST)
-        // 新規作成時はdate必須の可能性があるため、startTimeISOがあってもdateを入れる必要があるかもしれないが
-        // 今回のバグは「編集(PUT)」なので、まずは編集を成功させるロジックとしています。
-        // もし新規作成でエラーが出る場合は、POST時のみ payload.date = formData.date を強制します。
         if (!editTargetData && !payload.date) {
              payload.date = formData.date;
         }
@@ -410,14 +423,16 @@ const GroupCalendarPage = () => {
         </div>
       </div>
 
-      <EventModal 
+     {/* 2. EventModal に onDelete を渡す */}
+     <EventModal 
         isOpen={isDetailModalOpen} 
         onClose={() => setIsDetailModalOpen(false)} 
         event={selectedEvent}
         currentUser={currentUser}
-        isAdmin={isAdmin} // 管理者権限を渡す
-        onEdit={handleEditClick} // 編集ハンドラを渡す
+        isAdmin={isAdmin}
+        onEdit={handleEditClick}
         onReactionUpdate={handleReactionUpdate}
+        onDelete={handleDeleteTask} // ★★★ ここを追加してください ★★★
         readOnly={false}
       />
 
@@ -428,10 +443,12 @@ const GroupCalendarPage = () => {
           setEditTargetData(null); // 閉じる時に編集データをクリア
         }}
         onSubmit={handleFormSubmit}
+        onDelete={handleDeleteTask} // ★ Added: 削除ハンドラを渡す
         
         initialDate={initialDateStr}
         initialStartTime={initialStartTimeStr}
         initialData={editTargetData} // 編集データを渡す
+        isAdmin={isAdmin} // ★ Added: 管理者権限を渡す
 
         // keyを変えて再マウント（フォームリセット）
         key={isCreateModalOpen ? (editTargetData ? `edit-${editTargetData.id}` : 'create') : 'closed'}

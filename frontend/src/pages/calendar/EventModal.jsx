@@ -15,8 +15,9 @@ const EventModal = ({
   onClose, 
   event, 
   readOnly = false, 
-  isAdmin = false, // ▼ 追加
-  onEdit = () => {}, // ▼ 追加
+  isAdmin = false,
+  onEdit = () => {},
+  onDelete = () => {}, // ★ Added: 削除関数を受け取る
   currentUser = null, 
   onReactionUpdate = () => {} 
 }) => {
@@ -48,6 +49,13 @@ const EventModal = ({
   const displayedMembers = isMembersExpanded ? joinedMembers : joinedMembers.slice(0, INITIAL_DISPLAY_COUNT);
   const remainingCount = joinedMembers.length - INITIAL_DISPLAY_COUNT;
 
+  // ★ Added: 削除ハンドラ
+  const handleDeleteClick = () => {
+    if (window.confirm('本当にこのタスクを削除しますか？')) {
+      if (onDelete) onDelete(event);
+    }
+  };
+
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 -z-10" onClick={onClose}></div>
@@ -67,7 +75,22 @@ const EventModal = ({
             <p className="text-sm text-slate-500 mt-1 font-medium">{formatDate(start)} {end && ` - ${formatDate(end)}`}</p>
           </div>
           
-          <div className="absolute top-4 right-4 flex gap-2">
+          <div className="absolute top-4 right-4 flex gap-1">
+            {/* ▼▼▼ 削除ボタン (管理者のみ & 読取専用でない場合) ▼▼▼ */}
+            {!readOnly && isAdmin && onDelete && (
+              <button
+                onClick={handleDeleteClick}
+                className="text-slate-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors"
+                title="削除する"
+              >
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                 </svg>
+              </button>
+            )}
+
             {/* ▼▼▼ 編集ボタン (管理者のみ) ▼▼▼ */}
             {!readOnly && isAdmin && (
               <button
@@ -80,7 +103,7 @@ const EventModal = ({
                 </svg>
               </button>
             )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">✕</button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 ml-1">✕</button>
           </div>
         </div>
 
