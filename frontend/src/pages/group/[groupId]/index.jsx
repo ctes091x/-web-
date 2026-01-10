@@ -183,10 +183,7 @@ const GroupCalendarPage = () => {
       const newEndISO = end ? end.toISOString() : null;
       
       // YYYY-MM-DD形式
-      const newDateStr = start ? start.toISOString().split('T')[0] : null;
-      // format を使った書き方も残しておきます。
-      // 現在は正常に動作しますが、もし日付更新などで不具合が起こったら切り替えてみてください。
-      // const newDateStr = start ? format(start, 'yyyy-MM-dd') : null;
+      const newDateStr = start ? format(start, 'yyyy-MM-dd') : null;
 
       // 2. 既存データの引継ぎ
       // PUTリクエストなので、変更しないフィールドも全て送信しないと消える可能性がある
@@ -204,21 +201,21 @@ const GroupCalendarPage = () => {
         // 日時情報の構築
         time_span_begin: null,
         time_span_end: null,
-        date: undefined
+        date: newDateStr,
       };
 
       // 3. ロジック分岐: 終日(AllDay)か、時間指定か
       if (allDay) {
         // --- 終日スロットへドロップした場合 ---
         // 時間情報はNullにし、dateを設定する
-        payload.date = newDateStr;
+        // payload.date = newDateStr;
         payload.time_span_begin = null;
         payload.time_span_end = null;
       } else {
         // --- 時間スロットへドロップした場合 ---
         // dateをundefined(送信しない)にし、時間を設定する
         // ※バックエンドの仕様に合わせて undefined を使う
-        payload.date = undefined;
+        // payload.date = newDateStr;
         payload.time_span_begin = newStartISO;
         payload.time_span_end = newEndISO;
       }
