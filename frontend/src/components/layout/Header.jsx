@@ -8,19 +8,38 @@ export const Header = () => {
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   
-  // ▼ 追加: APIから取得したグループ一覧を管理
+  // グループ一覧と、現在のユーザー情報を管理
   const [groups, setGroups] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const navigate = useNavigate();
 
-  // ▼ 追加: メニューを開いた時（またはマウント時）に最新のグループ一覧を取得
+  // ▼ 初期表示時にユーザー自身の情報を取得
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        // 自分のプロフィール情報を取得
+        const response = await api.get('/me');
+        setCurrentUser(response.data);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+
+    fetchMe();
+  }, []);
+
+  // ▼ メニューを開いた時（またはマウント時）に最新のグループ一覧を取得
   useEffect(() => {
     const fetchMyGroups = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // 修正: バックエンドの現状に合わせて /users を削除
+        // 参加グループ一覧を取得
         const response = await api.get('/me/groups');
         setGroups(response.data);
       } catch (error) {
@@ -29,7 +48,7 @@ export const Header = () => {
     };
 
     fetchMyGroups();
-  }, [isGroupMenuOpen]); // メニューを開くたびに再取得してリストを最新化
+  }, [isGroupMenuOpen]);
 
   const handleGroupClick = (groupId) => {
     setIsGroupMenuOpen(false);
@@ -51,9 +70,8 @@ export const Header = () => {
       <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="h-full px-6 max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            {/* ロゴ部分: divタグからimgタグへ変更 */}
+            {/* ロゴ部分 */}
             <Link to="/calendar" className="flex items-center gap-2 group">
-                {/* w-8 h-8 (32px) で表示。object-containで縦横比を維持 */}
                 <img 
                   src={logo} 
                   alt="Syncle Logo" 
@@ -65,7 +83,6 @@ export const Header = () => {
             <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600">
               <Link to="/calendar" className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-indigo-600 transition-colors">マイカレンダー</Link>
               
-              {/* ▼▼▼ 追加: 自分のタスクへのリンク ▼▼▼ */}
               <Link to="/tasks" className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-indigo-600 transition-colors">自分のタスク</Link>
 
               {/* グループメニュー */}
@@ -104,7 +121,7 @@ export const Header = () => {
                         )}
                       </div>
 
-                      {/* ▼▼▼ 追加: アクションボタンエリア ▼▼▼ */}
+                      {/* アクションボタンエリア */}
                       <div className="bg-slate-50 border-t border-slate-100 p-2 space-y-1">
                         <button
                           onClick={() => {
@@ -138,9 +155,16 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/user/me/profile" className="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50">
-              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">U</div>
-              <span>Profile</span>
+            {/* ▼▼▼ 修正: ユーザー名の表示 ▼▼▼ */}
+            <Link to="/user/me/profile" className="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50 transition-colors">
+              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 uppercase">
+                {/* ユーザー名の頭文字を表示、なければU */}
+                {currentUser?.user_name ? currentUser.user_name.charAt(0) : 'U'}
+              </div>
+              <span className="max-w-[100px] truncate">
+                {/* ユーザー名を表示、なければProfile */}
+                {currentUser?.user_name || 'Profile'}
+              </span>
             </Link>
 
             <button
