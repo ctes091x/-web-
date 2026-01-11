@@ -94,46 +94,49 @@ const CalendarPage = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-slate-800">マイカレンダー</h2>
-        <p className="text-sm text-slate-500">
-          あなたが「参加」を表明した全グループの予定を表示しています
-        </p>
-      </div>
+    <>
+      <title>マイカレンダー</title>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-slate-800">マイカレンダー</h2>
+          <p className="text-sm text-slate-500">
+            あなたが「参加」を表明した全グループの予定を表示しています
+          </p>
+        </div>
 
-      <div className="h-[750px]">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek'
-          }}
-          locale="ja"
-          firstDay={1}
-          height="100%"
-          
-          events={events}
-          // datesSet は削除 (useEffectで一括取得するため不要)
-          eventClick={handleEventClick}
-          
-          editable={false}
-          selectable={false}
-          dayMaxEvents={true}
+        <div className="h-[750px]">
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek'
+            }}
+            locale="ja"
+            firstDay={1}
+            height="100%"
+            
+            events={events}
+            // datesSet は削除 (useEffectで一括取得するため不要)
+            eventClick={handleEventClick}
+            
+            editable={false}
+            selectable={false}
+            dayMaxEvents={true}
+          />
+        </div>
+
+        <EventModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          event={selectedEvent}
+          currentUser={currentUser}
+          readOnly={true} // マイカレンダーからは編集不可
         />
       </div>
-
-      <EventModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        event={selectedEvent}
-        currentUser={currentUser}
-        readOnly={true} // マイカレンダーからは編集不可
-      />
-    </div>
+    </>
   );
 };
 

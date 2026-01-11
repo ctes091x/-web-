@@ -382,78 +382,81 @@ const GroupCalendarPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">グループカレンダー</h1>
-          <p className="text-sm text-slate-500">
-             {isAdmin ? "あなたは管理者です。予定の追加・編集が可能です。" : "予定の確認と参加表明ができます。"}
-          </p>
+    <>
+      <title>グループカレンダー</title>
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">グループカレンダー</h1>
+            <p className="text-sm text-slate-500">
+               {isAdmin ? "あなたは管理者です。予定の追加・編集が可能です。" : "予定の確認と参加表明ができます。"}
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={handleOpenCreateModal}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors"
+            >
+              ＋ 新規作成
+            </button>
+          )}
         </div>
-        {isAdmin && (
-          <button
-            onClick={handleOpenCreateModal}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors"
-          >
-            ＋ 新規作成
-          </button>
-        )}
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="h-[750px]">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' }}
-            locale="ja"
-            firstDay={1}
-            height="100%"
-            events={events}
-            
-            eventClick={handleEventClick}
-            eventDrop={handleEventDrop}
-            eventResize={handleEventDrop}
-            
-            selectable={isAdmin}
-            dateClick={handleDateSelect}
-            
-            editable={isAdmin}
-          />
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="h-[750px]">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' }}
+              locale="ja"
+              firstDay={1}
+              height="100%"
+              events={events}
+              
+              eventClick={handleEventClick}
+              eventDrop={handleEventDrop}
+              eventResize={handleEventDrop}
+              
+              selectable={isAdmin}
+              dateClick={handleDateSelect}
+              
+              editable={isAdmin}
+            />
+          </div>
         </div>
+
+       {/* 2. EventModal に onDelete を渡す */}
+       <EventModal 
+          isOpen={isDetailModalOpen} 
+          onClose={() => setIsDetailModalOpen(false)} 
+          event={selectedEvent}
+          currentUser={currentUser}
+          isAdmin={isAdmin}
+          onEdit={handleEditClick}
+          onReactionUpdate={handleReactionUpdate}
+          onDelete={handleDeleteTask} // ★★★ ここを追加してください ★★★
+          readOnly={false}
+        />
+
+        <CreateEventModal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setEditTargetData(null); // 閉じる時に編集データをクリア
+          }}
+          onSubmit={handleFormSubmit}
+          onDelete={handleDeleteTask} // ★ Added: 削除ハンドラを渡す
+          
+          initialDate={initialDateStr}
+          initialStartTime={initialStartTimeStr}
+          initialData={editTargetData} // 編集データを渡す
+          isAdmin={isAdmin} // ★ Added: 管理者権限を渡す
+
+          // keyを変えて再マウント（フォームリセット）
+          key={isCreateModalOpen ? (editTargetData ? `edit-${editTargetData.id}` : 'create') : 'closed'}
+        />
       </div>
-
-     {/* 2. EventModal に onDelete を渡す */}
-     <EventModal 
-        isOpen={isDetailModalOpen} 
-        onClose={() => setIsDetailModalOpen(false)} 
-        event={selectedEvent}
-        currentUser={currentUser}
-        isAdmin={isAdmin}
-        onEdit={handleEditClick}
-        onReactionUpdate={handleReactionUpdate}
-        onDelete={handleDeleteTask} // ★★★ ここを追加してください ★★★
-        readOnly={false}
-      />
-
-      <CreateEventModal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setEditTargetData(null); // 閉じる時に編集データをクリア
-        }}
-        onSubmit={handleFormSubmit}
-        onDelete={handleDeleteTask} // ★ Added: 削除ハンドラを渡す
-        
-        initialDate={initialDateStr}
-        initialStartTime={initialStartTimeStr}
-        initialData={editTargetData} // 編集データを渡す
-        isAdmin={isAdmin} // ★ Added: 管理者権限を渡す
-
-        // keyを変えて再マウント（フォームリセット）
-        key={isCreateModalOpen ? (editTargetData ? `edit-${editTargetData.id}` : 'create') : 'closed'}
-      />
-    </div>
+    </>
   );
 };
 

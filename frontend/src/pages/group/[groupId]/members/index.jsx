@@ -136,109 +136,112 @@ const GroupMembersPage = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* タブヘッダー */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('members')}
-          className={`flex-1 py-4 text-sm font-bold text-center transition-colors ${
-            activeTab === 'members' 
-              ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' 
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          メンバー ({members.length})
-        </button>
-        {isAdmin && (
+    <>
+      <title>メンバー一覧 | Syncle</title>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* タブヘッダー */}
+        <div className="flex border-b border-slate-200">
           <button
-            onClick={() => setActiveTab('requests')}
+            onClick={() => setActiveTab('members')}
             className={`flex-1 py-4 text-sm font-bold text-center transition-colors ${
-              activeTab === 'requests' 
+              activeTab === 'members' 
                 ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' 
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            承認待ち ({requests.length})
+            メンバー ({members.length})
           </button>
-        )}
-      </div>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`flex-1 py-4 text-sm font-bold text-center transition-colors ${
+                activeTab === 'requests' 
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' 
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              承認待ち ({requests.length})
+            </button>
+          )}
+        </div>
 
-      {/* コンテンツ */}
-      <div className="p-0">
-        {loading ? (
-          <div className="p-8 text-center text-slate-400">読み込み中...</div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {(activeTab === 'members' ? members : requests).length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm">該当するユーザーはいません</div>
-            ) : (
-              (activeTab === 'members' ? members : requests).map((member) => (
-                <div key={member.user_id || member.email} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
-                      {member.user_name ? member.user_name[0] : 'U'}
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        {member.user_name}
-                        {member.is_representative && (
-                          <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded border border-indigo-200">管理者</span>
+        {/* コンテンツ */}
+        <div className="p-0">
+          {loading ? (
+            <div className="p-8 text-center text-slate-400">読み込み中...</div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {(activeTab === 'members' ? members : requests).length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-sm">該当するユーザーはいません</div>
+              ) : (
+                (activeTab === 'members' ? members : requests).map((member) => (
+                  <div key={member.user_id || member.email} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+                        {member.user_name ? member.user_name[0] : 'U'}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          {member.user_name}
+                          {member.is_representative && (
+                            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded border border-indigo-200">管理者</span>
+                          )}
+                        </p>
+                        {(isAdmin || (currentUser && currentUser.user_id === member.user_id)) && (
+                          <p className="text-xs text-slate-500">{member.email}</p>
                         )}
-                      </p>
-                      {(isAdmin || (currentUser && currentUser.user_id === member.user_id)) && (
-                        <p className="text-xs text-slate-500">{member.email}</p>
+                      </div>
+                    </div>
+
+                    {/* アクションボタンエリア */}
+                    <div>
+                      {/* 承認待ちタブ (管理者のみ) */}
+                      {activeTab === 'requests' && isAdmin && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRequestAction(member.email, 'approve')}
+                            className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700"
+                          >
+                            承認
+                          </button>
+                          <button
+                            onClick={() => handleRequestAction(member.email, 'reject')}
+                            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded shadow-sm hover:bg-slate-50"
+                          >
+                            拒否
+                          </button>
+                        </div>
+                      )}
+
+                      {/* メンバー一覧タブ (管理者のみ & 自分以外) */}
+                      {activeTab === 'members' && isAdmin && currentUser && member.user_id !== currentUser.user_id && (
+                        <div className="flex gap-2">
+                          {member.is_representative ? (
+                            <button
+                              onClick={() => handleRoleUpdate(member.user_id, true)}
+                              className="px-3 py-1.5 border border-red-200 text-red-600 text-xs font-bold rounded shadow-sm hover:bg-red-50"
+                            >
+                              管理者解除
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRoleUpdate(member.user_id, false)}
+                              className="px-3 py-1.5 border border-indigo-200 text-indigo-600 text-xs font-bold rounded shadow-sm hover:bg-indigo-50"
+                            >
+                              管理者に設定
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  {/* アクションボタンエリア */}
-                  <div>
-                    {/* 承認待ちタブ (管理者のみ) */}
-                    {activeTab === 'requests' && isAdmin && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleRequestAction(member.email, 'approve')}
-                          className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded shadow-sm hover:bg-indigo-700"
-                        >
-                          承認
-                        </button>
-                        <button
-                          onClick={() => handleRequestAction(member.email, 'reject')}
-                          className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded shadow-sm hover:bg-slate-50"
-                        >
-                          拒否
-                        </button>
-                      </div>
-                    )}
-
-                    {/* メンバー一覧タブ (管理者のみ & 自分以外) */}
-                    {activeTab === 'members' && isAdmin && currentUser && member.user_id !== currentUser.user_id && (
-                      <div className="flex gap-2">
-                        {member.is_representative ? (
-                          <button
-                            onClick={() => handleRoleUpdate(member.user_id, true)}
-                            className="px-3 py-1.5 border border-red-200 text-red-600 text-xs font-bold rounded shadow-sm hover:bg-red-50"
-                          >
-                            管理者解除
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleRoleUpdate(member.user_id, false)}
-                            className="px-3 py-1.5 border border-indigo-200 text-indigo-600 text-xs font-bold rounded shadow-sm hover:bg-indigo-50"
-                          >
-                            管理者に設定
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -32,6 +32,7 @@ const GroupCreatePage = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+      <title>新しいグループを作成 | Syncle</title>
       <h1 className="text-2xl font-bold text-slate-900 mb-2">新しいグループを作成</h1>
       <p className="text-sm text-slate-500 mb-6">あなたが管理者となり、新しいグループを立ち上げます。</p>
       
